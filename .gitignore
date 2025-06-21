@@ -1,0 +1,18 @@
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.*node_modules/
+.next/
