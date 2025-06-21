@@ -20,29 +20,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import * as z from "zod";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TransactionTypeCode,
+  TransactionTypeRulesMap,
+} from "./contants/transaction-type-enum";
 
-export enum TransactionTypeCode {
-  GOLD_ENTRY = "GOLD_ENTRY",
-  DISCOUNT_CREDIT = "DISCOUNT_CREDIT",
-  DISCOUNT_DEBIT = "DISCOUNT_DEBIT",
-  RETURNED_OUT = "RETURNED_OUT",
-  CONVERSION = "CONVERSION",
-  SCRAP_OUT = "SCRAP_OUT",
-  SCRAP_IN = "SCRAP_IN",
-  MATERIAL_OUT = "MATERIAL_OUT",
-  MATERIAL_IN = "MATERIAL_IN",
-  OFFSET = "OFFSET",
-  MATERIAL_RETURN = "MATERIAL_RETURN",
-  MATERIAL_SALE = "MATERIAL_SALE",
-  CASH_PAYMENT = "CASH_PAYMENT",
-  CASH_COLLECTION = "CASH_COLLECTION",
-  CUSTOM_PRODUCT_OUT = "CUSTOM_PRODUCT_OUT",
-  CUSTOM_PRODUCT_IN = "CUSTOM_PRODUCT_IN",
-}
-
-// Zod schema, impacts array eklendi
+// Zod schema
 const impactSchema = z
   .object({
     currencyId: z
@@ -66,9 +53,18 @@ const schema = z.object({
   impacts: z
     .array(impactSchema)
     .min(1, { message: "En az bir para birimi etkisi girilmeli." }),
+  meta: z.record(z.any()).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
+
+type MetaField = {
+  name: string;
+  label: string;
+  type: "text" | "number" | "select" | "date";
+  required?: boolean;
+  options?: string[];
+};
 
 export default function TransactionForm() {
   const form = useForm<FormData>({
@@ -82,35 +78,47 @@ export default function TransactionForm() {
       productId: "",
       quantity: undefined,
       impacts: [{ currencyId: "", debit: 0, credit: 0 }],
+      meta: {},
     },
   });
 
-  // impacts alanı dinamik bir array, react-hook-form'un useFieldArray kullanımı
+  const transactionTypeCode = form.watch("transactionTypeCode");
+  const [metaFields, setMetaFields] = useState<MetaField[]>([]);
+
+  useEffect(() => {
+    if (transactionTypeCode) {
+      const selected = TransactionTypeRulesMap[transactionTypeCode];
+      if (selected?.metaSchema?.fields) {
+        setMetaFields(selected.metaSchema.fields);
+      } else {
+        setMetaFields([]);
+      }
+    }
+  }, [transactionTypeCode]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "impacts",
   });
 
-  // Örnek para birimi seçenekleri, bunu API'den çekmen önerilir
   const currencyOptions = [
     { id: "uuid-try", name: "TRY" },
     { id: "uuid-usd", name: "USD" },
     { id: "uuid-eur", name: "EUR" },
   ];
 
-  // TransactionType seçenekleri (enum’dan dönüştür)
-  const transactionTypes = Object.entries(TransactionTypeCode).map(
-    ([key, value]) => ({
-      code: value,
-      name: key.replace(/_/g, " ").toLocaleLowerCase(), // basit dönüştürme, istersen farklı yap
+  const transactionTypeOptions = Object.entries(TRANSACTION_TYPE_LABELS).map(
+    ([value, label]) => ({
+      value: value as TransactionTypeCode,
+      label,
     })
   );
 
   const onSubmit = (data: FormData) => {
     console.log("Submitted:", data);
-    // API çağrısı yap
   };
 
+  console.log(transactionTypeOptions);
   return (
     <Card className="mx-auto w-full max-w-3xl">
       <CardHeader>
@@ -121,7 +129,6 @@ export default function TransactionForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Transaction Type */}
             <FormField
               control={form.control}
               name="transactionTypeCode"
@@ -135,10 +142,9 @@ export default function TransactionForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {transactionTypes.map((type) => (
-                        <SelectItem key={type.code} value={type.code}>
-                          {type.name.charAt(0).toUpperCase() +
-                            type.name.slice(1)}
+                      {transactionTypeOptions.map((type: any) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -148,7 +154,6 @@ export default function TransactionForm() {
               )}
             />
 
-            {/* Account ID */}
             <FormField
               control={form.control}
               name="accountId"
@@ -163,7 +168,6 @@ export default function TransactionForm() {
               )}
             />
 
-            {/* Reference Code */}
             <FormField
               control={form.control}
               name="referenceCode"
@@ -178,7 +182,46 @@ export default function TransactionForm() {
               )}
             />
 
-            {/* Impacts - Borç/Alacak ve Para Birimi */}
+            {/* Dynamic Meta Fields */}
+            {metaFields.map((metaField) => (
+              <FormField
+                key={metaField.name}
+                control={form.control}
+                name={`meta.${metaField.name}` as const}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{metaField.label}</FormLabel>
+                    <FormControl>
+                      {metaField.type === "select" ? (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seçiniz" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {metaField.options?.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          {...field}
+                          type={metaField.type}
+                          placeholder={metaField.label}
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+
             <div>
               <FormLabel className="mb-2 font-semibold">
                 Cari Hareketler
@@ -186,7 +229,6 @@ export default function TransactionForm() {
               <br />
               {fields.map((field, index) => (
                 <div key={field.id} className="grid grid-cols-4 gap-4 mb-4">
-                  {/* Currency */}
                   <FormField
                     control={form.control}
                     name={`impacts.${index}.currencyId` as const}
@@ -215,49 +257,34 @@ export default function TransactionForm() {
                     )}
                   />
 
-                  {/* Debit */}
                   <FormField
                     control={form.control}
                     name={`impacts.${index}.debit` as const}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Debit (Borç)</FormLabel>
+                        <FormLabel>Borç</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            {...field}
-                          />
+                          <Input type="number" step="0.01" min="0" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* Credit */}
                   <FormField
                     control={form.control}
                     name={`impacts.${index}.credit` as const}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Credit (Alacak)</FormLabel>
+                        <FormLabel>Alacak</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            {...field}
-                          />
+                          <Input type="number" step="0.01" min="0" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* Remove Button */}
                   <div className="flex items-end">
                     <Button
                       variant="destructive"
@@ -269,8 +296,6 @@ export default function TransactionForm() {
                   </div>
                 </div>
               ))}
-              <br />
-
               <Button
                 type="button"
                 onClick={() => append({ currencyId: "", debit: 0, credit: 0 })}
@@ -279,7 +304,6 @@ export default function TransactionForm() {
               </Button>
             </div>
 
-            {/* Cash Amount */}
             <FormField
               control={form.control}
               name="cashAmount"
@@ -287,19 +311,13 @@ export default function TransactionForm() {
                 <FormItem>
                   <FormLabel>Cash Amount</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                    />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Product ID */}
             <FormField
               control={form.control}
               name="productId"
@@ -307,14 +325,13 @@ export default function TransactionForm() {
                 <FormItem>
                   <FormLabel>Product ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="UUID" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Quantity */}
             <FormField
               control={form.control}
               name="quantity"
@@ -322,14 +339,13 @@ export default function TransactionForm() {
                 <FormItem>
                   <FormLabel>Quantity</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0" {...field} />
+                    <Input type="number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -337,7 +353,7 @@ export default function TransactionForm() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Transaction details..." {...field} />
+                    <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
