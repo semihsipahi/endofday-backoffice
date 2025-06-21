@@ -1,18 +1,18 @@
-import TransactionForm from './transaction-form';
+import TransactionForm from "./transaction-form";
 
 type TTransactionViewPageProps = {
   transactionId: string;
 };
 
 export default async function TransactionViewPage({
-  transactionId
+  transactionId,
 }: TTransactionViewPageProps) {
   let transaction = null;
-  let pageTitle = 'Yeni Cari İşlem Başlat';
+  let pageTitle = "Yeni Cari İşlem Başlat";
 
-  if (transactionId !== 'new') {
+  if (transactionId !== "new") {
     pageTitle = `Cari İşlem Kaydı`;
   }
 
-  return <TransactionForm initialData={transaction} pageTitle={pageTitle} />;
+  return <TransactionForm onSubmit={() => {}} />;
 }
