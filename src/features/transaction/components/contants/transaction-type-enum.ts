@@ -43,8 +43,8 @@ export const TransactionTypeRulesMap: {
     requiresReferenceCode: true,
     metaSchema: {
       fields: [
-        { name: "productName", label: "Ürün Adı", type: "text" },
-        { name: "gram", label: "Gram", type: "number", required: true },
+        { name: "productName", label: "Mal Tanımı", type: "text" },
+        { name: "quantity", label: "Miktar", type: "number", required: true },
         { name: "ayar", label: "Ayar", type: "number", required: true },
         { name: "has", label: "Has", type: "number" },
         { name: "labor", label: "Toplam İşçilik", type: "number" },

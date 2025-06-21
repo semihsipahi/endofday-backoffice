@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -66,6 +67,110 @@ type MetaField = {
   options?: string[];
 };
 
+function ImpactsTab({ form }: { form: any }) {
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "impacts",
+  });
+
+  const currencyOptions = [
+    { id: "uuid-try", name: "TRY" },
+    { id: "uuid-usd", name: "USD" },
+    { id: "uuid-eur", name: "EUR" },
+  ];
+
+  return (
+    <div>
+      <FormLabel className="mb-2 font-semibold">Cari Hareketler</FormLabel>
+      <br />
+      {fields.map((field, index) => (
+        <div key={field.id} className="grid grid-cols-4 gap-4 mb-4">
+          <FormField
+            control={form.control}
+            name={`impacts.${index}.currencyId` as const}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Para Birimi</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Birim Seçiniz" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {currencyOptions.map((currency) => (
+                      <SelectItem key={currency.id} value={currency.id}>
+                        {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={`impacts.${index}.debit` as const}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Borç</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name={`impacts.${index}.credit` as const}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Alacak</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex items-end">
+            <Button
+              variant="destructive"
+              onClick={() => remove(index)}
+              type="button"
+            >
+              Sil
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button
+        type="button"
+        onClick={() => append({ currencyId: "", debit: 0, credit: 0 })}
+      >
+        Cari Hareket Ekle
+      </Button>
+    </div>
+  );
+}
+
 export default function TransactionForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -96,17 +201,6 @@ export default function TransactionForm() {
     }
   }, [transactionTypeCode]);
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "impacts",
-  });
-
-  const currencyOptions = [
-    { id: "uuid-try", name: "TRY" },
-    { id: "uuid-usd", name: "USD" },
-    { id: "uuid-eur", name: "EUR" },
-  ];
-
   const transactionTypeOptions = Object.entries(TRANSACTION_TYPE_LABELS).map(
     ([value, label]) => ({
       value: value as TransactionTypeCode,
@@ -118,7 +212,6 @@ export default function TransactionForm() {
     console.log("Submitted:", data);
   };
 
-  console.log(transactionTypeOptions);
   return (
     <Card className="mx-auto w-full max-w-3xl">
       <CardHeader>
@@ -154,214 +247,119 @@ export default function TransactionForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="accountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hesap</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Altınbaş..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <br />
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
+                <TabsTrigger value="impacts">Cari Hareketler</TabsTrigger>
+              </TabsList>
 
-            <FormField
-              control={form.control}
-              name="referenceCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Referans Kodu</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Referans var ise" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Dynamic Meta Fields */}
-            {metaFields.map((metaField) => (
-              <FormField
-                key={metaField.name}
-                control={form.control}
-                name={`meta.${metaField.name}` as const}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{metaField.label}</FormLabel>
-                    <FormControl>
-                      {metaField.type === "select" ? (
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seçiniz" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {metaField.options?.map((opt) => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          {...field}
-                          type={metaField.type}
-                          placeholder={metaField.label}
-                        />
-                      )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-
-            <div>
-              <FormLabel className="mb-2 font-semibold">
-                Cari Hareketler
-              </FormLabel>
               <br />
-              {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-4 gap-4 mb-4">
-                  <FormField
-                    control={form.control}
-                    name={`impacts.${index}.currencyId` as const}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Para Birimi</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Birim Seçiniz" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {currencyOptions.map((currency) => (
-                              <SelectItem key={currency.id} value={currency.id}>
-                                {currency.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <TabsContent value="general" className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="accountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hesap</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Altınbaş..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name={`impacts.${index}.debit` as const}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Borç</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name="referenceCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Referans Kodu</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Referans var ise" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name={`impacts.${index}.credit` as const}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alacak</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Dynamic Meta Fields */}
+                {metaFields.length > 0 && (
+                  <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-md">
+                    <CardHeader className="border-b border-gray-200 dark:border-gray-600">
+                      <CardTitle className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                        Meta Alanlar
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 pt-4">
+                      {metaFields.map((metaField) => (
+                        <FormField
+                          key={metaField.name}
+                          control={form.control}
+                          name={`meta.${metaField.name}` as const}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-medium text-gray-600 dark:text-gray-300">
+                                {metaField.label}
+                              </FormLabel>
+                              <FormControl>
+                                {metaField.type === "select" ? (
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                  >
+                                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                                      <SelectValue placeholder="Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {metaField.options?.map((opt) => (
+                                        <SelectItem key={opt} value={opt}>
+                                          {opt}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    {...field}
+                                    type={metaField.type}
+                                    placeholder={metaField.label}
+                                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                                  />
+                                )}
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
 
-                  <div className="flex items-end">
-                    <Button
-                      variant="destructive"
-                      onClick={() => remove(index)}
-                      type="button"
-                    >
-                      Sil
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                onClick={() => append({ currencyId: "", debit: 0, credit: 0 })}
-              >
-                Cari Hareket Ekle
-              </Button>
-            </div>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Açıklama</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
 
-            <FormField
-              control={form.control}
-              name="cashAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cash Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="productId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product ID</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <TabsContent value="impacts">
+                <ImpactsTab form={form} />
+              </TabsContent>
+            </Tabs>
 
             <Button type="submit" className="w-full">
-              Create Transaction
+              Başlat
             </Button>
           </form>
         </Form>
