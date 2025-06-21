@@ -20,15 +20,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import * as z from "zod";
 
 export enum TransactionTypeCode {
-  GOLD_IN = "GOLD_IN",
-  DISCOUNT_RECEIVABLE = "DISCOUNT_RECEIVABLE",
-  DISCOUNT_PAYABLE = "DISCOUNT_PAYABLE",
-  RETURN_OUT = "RETURN_OUT",
-  CONVERT = "CONVERT",
+  GOLD_ENTRY = "GOLD_ENTRY",
+  DISCOUNT_CREDIT = "DISCOUNT_CREDIT",
+  DISCOUNT_DEBIT = "DISCOUNT_DEBIT",
+  RETURNED_OUT = "RETURNED_OUT",
+  CONVERSION = "CONVERSION",
   SCRAP_OUT = "SCRAP_OUT",
   SCRAP_IN = "SCRAP_IN",
   MATERIAL_OUT = "MATERIAL_OUT",
@@ -38,26 +38,40 @@ export enum TransactionTypeCode {
   MATERIAL_SALE = "MATERIAL_SALE",
   CASH_PAYMENT = "CASH_PAYMENT",
   CASH_COLLECTION = "CASH_COLLECTION",
-  SPECIAL_PRODUCT_OUT = "SPECIAL_PRODUCT_OUT",
-  SPECIAL_PRODUCT_IN = "SPECIAL_PRODUCT_IN",
+  CUSTOM_PRODUCT_OUT = "CUSTOM_PRODUCT_OUT",
+  CUSTOM_PRODUCT_IN = "CUSTOM_PRODUCT_IN",
 }
+
+// Zod schema, impacts array eklendi
+const impactSchema = z
+  .object({
+    currencyId: z
+      .string()
+      .uuid({ message: "Geçerli bir para birimi seçiniz." }),
+    debit: z.number().min(0).optional(),
+    credit: z.number().min(0).optional(),
+  })
+  .refine((data) => (data.debit ?? 0) > 0 || (data.credit ?? 0) > 0, {
+    message: "Borç veya Alacak tutarından en az biri sıfırdan büyük olmalı.",
+  });
 
 const schema = z.object({
   transactionTypeCode: z.nativeEnum(TransactionTypeCode),
   accountId: z.string().uuid().optional(),
   referenceCode: z.string().optional(),
   description: z.string().optional(),
-  cashAmount: z.coerce.number().optional(),
+  cashAmount: z.number().optional(),
   productId: z.string().uuid().optional(),
-  quantity: z.coerce.number().optional(),
+  quantity: z.number().optional(),
+  impacts: z
+    .array(impactSchema)
+    .min(1, { message: "En az bir para birimi etkisi girilmeli." }),
 });
 
-export default function TransactionForm({
-  onSubmit,
-}: {
-  onSubmit: (data: z.infer<typeof schema>) => void;
-}) {
-  const form = useForm<z.infer<typeof schema>>({
+type FormData = z.infer<typeof schema>;
+
+export default function TransactionForm() {
+  const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       transactionTypeCode: undefined,
@@ -67,14 +81,41 @@ export default function TransactionForm({
       cashAmount: undefined,
       productId: "",
       quantity: undefined,
+      impacts: [{ currencyId: "", debit: 0, credit: 0 }],
     },
   });
+
+  // impacts alanı dinamik bir array, react-hook-form'un useFieldArray kullanımı
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "impacts",
+  });
+
+  // Örnek para birimi seçenekleri, bunu API'den çekmen önerilir
+  const currencyOptions = [
+    { id: "uuid-try", name: "TRY" },
+    { id: "uuid-usd", name: "USD" },
+    { id: "uuid-eur", name: "EUR" },
+  ];
+
+  // TransactionType seçenekleri (enum’dan dönüştür)
+  const transactionTypes = Object.entries(TransactionTypeCode).map(
+    ([key, value]) => ({
+      code: value,
+      name: key.replace(/_/g, " ").toLocaleLowerCase(), // basit dönüştürme, istersen farklı yap
+    })
+  );
+
+  const onSubmit = (data: FormData) => {
+    console.log("Submitted:", data);
+    // API çağrısı yap
+  };
 
   return (
     <Card className="mx-auto w-full max-w-3xl">
       <CardHeader>
         <CardTitle className="text-left text-2xl font-bold">
-          Create Transaction
+          Yeni Cari İşlem
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -86,17 +127,18 @@ export default function TransactionForm({
               name="transactionTypeCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Transaction Type</FormLabel>
+                  <FormLabel>İşlem Tipi</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select transaction type" />
+                        <SelectValue placeholder="İşlem Tipini Seçiniz" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {[].map((type: any) => (
+                      {transactionTypes.map((type) => (
                         <SelectItem key={type.code} value={type.code}>
-                          {type.name}
+                          {type.name.charAt(0).toUpperCase() +
+                            type.name.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -112,9 +154,9 @@ export default function TransactionForm({
               name="accountId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account ID</FormLabel>
+                  <FormLabel>Hesap</FormLabel>
                   <FormControl>
-                    <Input placeholder="UUID" {...field} />
+                    <Input placeholder="Altınbaş..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,14 +169,115 @@ export default function TransactionForm({
               name="referenceCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reference Code</FormLabel>
+                  <FormLabel>Referans Kodu</FormLabel>
                   <FormControl>
-                    <Input placeholder="Reference if exists" {...field} />
+                    <Input placeholder="Referans var ise" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Impacts - Borç/Alacak ve Para Birimi */}
+            <div>
+              <FormLabel className="mb-2 font-semibold">
+                Cari Hareketler
+              </FormLabel>
+              <br />
+              {fields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-4 gap-4 mb-4">
+                  {/* Currency */}
+                  <FormField
+                    control={form.control}
+                    name={`impacts.${index}.currencyId` as const}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Para Birimi</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Birim Seçiniz" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {currencyOptions.map((currency) => (
+                              <SelectItem key={currency.id} value={currency.id}>
+                                {currency.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Debit */}
+                  <FormField
+                    control={form.control}
+                    name={`impacts.${index}.debit` as const}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Debit (Borç)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Credit */}
+                  <FormField
+                    control={form.control}
+                    name={`impacts.${index}.credit` as const}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Credit (Alacak)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Remove Button */}
+                  <div className="flex items-end">
+                    <Button
+                      variant="destructive"
+                      onClick={() => remove(index)}
+                      type="button"
+                    >
+                      Sil
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <br />
+
+              <Button
+                type="button"
+                onClick={() => append({ currencyId: "", debit: 0, credit: 0 })}
+              >
+                Cari Hareket Ekle
+              </Button>
+            </div>
 
             {/* Cash Amount */}
             <FormField
