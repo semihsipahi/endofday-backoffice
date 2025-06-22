@@ -292,7 +292,7 @@ export default function TransactionForm() {
                         Meta Alanlar
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-4 pt-4">
+                    <CardContent className="grid gap-4">
                       {metaFields.map((metaField) => (
                         <FormField
                           key={metaField.name}
