@@ -45,6 +45,11 @@ export const navItems: NavItem[] = [
         url: "/dashboard/transaction",
         shortcut: ["t", "t"],
       },
+      {
+        title: "İşlem Tipleri",
+        url: "/dashboard/transaction_type",
+        shortcut: ["p", "p"],
+      },
     ],
   },
   {
