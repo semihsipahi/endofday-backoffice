@@ -1,9 +1,9 @@
-'use client';
+"use client";
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -26,12 +26,12 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail
-} from '@/components/ui/sidebar';
-import { UserAvatarProfile } from '@/components/user-avatar-profile';
-import { navItems } from '@/constants/data';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { SignOutButton, useUser } from '@clerk/nextjs';
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { UserAvatarProfile } from "@/components/user-avatar-profile";
+import { navItems } from "@/constants/data";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import {
   IconBell,
   IconChevronRight,
@@ -39,23 +39,24 @@ import {
   IconCreditCard,
   IconLogout,
   IconPhotoUp,
-  IconUserCircle
-} from '@tabler/icons-react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import * as React from 'react';
-import { Icons } from '../icons';
-import { OrgSwitcher } from '../org-switcher';
+  IconUserCircle,
+} from "@tabler/icons-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
+import { Icons } from "../icons";
+import { OrgSwitcher } from "../org-switcher";
+
 export const company = {
-  name: 'Acme Inc',
+  name: "Kardeşler Kuyumculuk",
   logo: IconPhotoUp,
-  plan: 'Enterprise'
+  plan: "Enterprise",
 };
 
 const tenants = [
-  { id: '1', name: 'Acme Inc' },
-  { id: '2', name: 'Beta Corp' },
-  { id: '3', name: 'Gamma Ltd' }
+  { id: "1", name: "Kardeşler Kuyumculuk" },
+  { id: "2", name: "Bosphorus Bullion" },
+  { id: "3", name: "BEST" },
 ];
 
 export default function AppSidebar() {
@@ -74,7 +75,7 @@ export default function AppSidebar() {
   }, [isOpen]);
 
   return (
-    <Sidebar collapsible='icon'>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
         <OrgSwitcher
           tenants={tenants}
@@ -82,7 +83,7 @@ export default function AppSidebar() {
           onTenantSwitch={handleSwitchTenant}
         />
       </SidebarHeader>
-      <SidebarContent className='overflow-x-hidden'>
+      <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarMenu>
@@ -93,7 +94,7 @@ export default function AppSidebar() {
                   key={item.title}
                   asChild
                   defaultOpen={item.isActive}
-                  className='group/collapsible'
+                  className="group/collapsible"
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -103,7 +104,7 @@ export default function AppSidebar() {
                       >
                         {item.icon && <Icon />}
                         <span>{item.title}</span>
-                        <IconChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+                        <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -148,30 +149,30 @@ export default function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
-                  size='lg'
-                  className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   {user && (
                     <UserAvatarProfile
-                      className='h-8 w-8 rounded-lg'
+                      className="h-8 w-8 rounded-lg"
                       showInfo
                       user={user}
                     />
                   )}
-                  <IconChevronsDown className='ml-auto size-4' />
+                  <IconChevronsDown className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg'
-                side='bottom'
-                align='end'
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                side="bottom"
+                align="end"
                 sideOffset={4}
               >
-                <DropdownMenuLabel className='p-0 font-normal'>
-                  <div className='px-1 py-1.5'>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="px-1 py-1.5">
                     {user && (
                       <UserAvatarProfile
-                        className='h-8 w-8 rounded-lg'
+                        className="h-8 w-8 rounded-lg"
                         showInfo
                         user={user}
                       />
@@ -182,24 +183,24 @@ export default function AppSidebar() {
 
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => router.push('/dashboard/profile')}
+                    onClick={() => router.push("/dashboard/profile")}
                   >
-                    <IconUserCircle className='mr-2 h-4 w-4' />
-                    Profile
+                    <IconUserCircle className="mr-2 h-4 w-4" />
+                    Profil
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <IconCreditCard className='mr-2 h-4 w-4' />
-                    Billing
+                    <IconCreditCard className="mr-2 h-4 w-4" />
+                    Fatura
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <IconBell className='mr-2 h-4 w-4' />
-                    Notifications
+                    <IconBell className="mr-2 h-4 w-4" />
+                    Bildirimler
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <IconLogout className='mr-2 h-4 w-4' />
-                  <SignOutButton redirectUrl='/auth/sign-in' />
+                  <IconLogout className="mr-2 h-4 w-4" />
+                  <SignOutButton redirectUrl="/auth/sign-in" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

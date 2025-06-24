@@ -42,6 +42,6 @@ export const columns: ColumnDef<TransactionTypeColumnModel>[] = [
       variant: "text",
       icon: Text,
     },
-    enableColumnFilter: true,
+    enableColumnFilter: false,
   },
 ];
